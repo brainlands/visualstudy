@@ -1,41 +1,117 @@
 class DragElement {
-    constructor(ele, parEle) {
-        this.dragDom = document.querySelector(ele);
-        this.parEle = document.querySelector(parEle);
-        this.isDragging = false;
-        this.startDrag.bind(this);
-        this.init();
-        const {width, height} = this.dragDom.getBoundingClientRect();
-        this.width = width;
-        this.height = height;
-        this.maxX = this.parEle.getBoundingClientRect().width - width;
-        this.maxY = this.parEle.getBoundingClientRect().height - height
+    constructor(container) {
+      this.container = container;
+      if(!document.querySelector(container)) {
+        this.container = document.createElement('div');
+        this.container.className = container;
+        document.body.appendChild(this.container);
+      }
+      this.draggables = [];
+      this.isDragging = false;
+      this.startX = 0;
+      this.startY = 0;
+      this.offsetX = 0;
+      this.offsetY = 0;
+      this.draggable = null;
+      this.init();
     }
+  
     init() {
-        if (this.dragDom) {
-            this.dragDom.addEventListener('mousedown', this.startDrag);
-        }
+      document.addEventListener('mousedown', this.startDrag);
     }
+  
+    add(element, onDragEnd) {
+      const draggable = new DraggableElement(element, this.container, onDragEnd);
+      this.draggables.push(draggable);
+    }
+  
     startDrag = (event) => {
+      this.draggable = this.getDraggable(event.target);
+      if (this.draggable) {
         this.isDragging = true;
-        this.dragDom.style.position = 'absolute';
-        this.dragDom.style.zIndex = 100;
-        const offsetX = event.clientX - this.dragDom.offsetLeft;
-        const offsetY = event.clientY - this.dragDom.offsetTop;
-        document.addEventListener('mousemove', this.dragStart(offsetX, offsetY))
-        document.addEventListener('mouseup', this.dragEnd)
-    }
-    dragStart = (offsetX, offsetY) => (event) => {
-        if (this.isDragging) {
-            const left = Math.max(Math.min(event.clientX - offsetX, this.maxX),0)
-            const top = Math.max(Math.min(event.clientY - offsetY, this.maxY),0)
-            this.dragDom.style.left = `${left}px`;
-            this.dragDom.style.top = `${top}px`;
-        }
-    }
-    dragEnd = (event) => {
+        const { left, top } = this.draggable.element.getBoundingClientRect();
+        this.startX = event.clientX;
+        this.startY = event.clientY;
+        this.offsetX = this.startX - this.draggable.element.offsetLeft;
+        this.offsetY = this.startY - this.draggable.element.offsetTop;
+        this.draggable.element.style.zIndex = 100;
+        document.addEventListener('mousemove', this.drag);
+        document.addEventListener('mouseup', this.endDrag);
+      }
+    };
+  
+    drag = (event) => {
+      if (this.isDragging) {
+        const { clientX, clientY } = event;
+        this.draggable.drag(event,this.offsetX, this.offsetY);
+      }
+    };
+  
+    endDrag = () => {
+      if (this.isDragging) {
+        const postion = this.draggable.getPosition();
         this.isDragging = false;
-        document.removeEventListener('mousemove', this.dragStart);
-        document.removeEventListener('mouseup', this.dragEnd);
+        this.draggable.endDrag(postion);
+        this.draggable = null;
+      }
+    };
+  
+    getDraggable(element) {
+      const draggable = this.draggables.find((draggable) => draggable.element === element);
+      return draggable || null;
     }
-}
+  }
+  
+  class DraggableElement {
+    constructor(element, container, onDragEnd) {
+      this.element =document.createElement('div');
+      this.element.classList.add('rect', element);
+      container.appendChild(this.element);
+      this.onDragEnd = onDragEnd;
+      this.container = container;
+      this.startX = 0;
+      this.startY = 0;
+      this.offsetX = 0;
+      this.offsetY = 0;
+      const {width, height} = this.element.getBoundingClientRect();
+      this.width = width;
+      this.height = height;
+      this.maxX = this.container.getBoundingClientRect().width - width;
+      this.maxY = this.container.getBoundingClientRect().height - height
+      this.init();
+    }
+  
+    init() {
+      this.element.addEventListener('mousedown', this.startDrag);
+    }
+  
+    startDrag = (event) => {
+      this.startX = event.clientX;
+      this.startY = event.clientY;
+      const { left, top } = this.element.getBoundingClientRect();
+      this.offsetX = this.startX - event.target.offsetLeft;
+      this.offsetY = this.startY - event.target.offsetTop;
+  
+      document.addEventListener('mousemove', this.drag);
+      document.addEventListener('mouseup', this.endDrag);
+    };
+  
+    drag = (event, offsetX, offsetY) => {
+      const { clientX, clientY } = event;
+      const left = Math.max(Math.min(clientX - offsetX, this.maxX),0)
+      const top = Math.max(Math.min(clientY - offsetY, this.maxY),0)
+      this.element.style.left = `${left}px`;
+      this.element.style.top = `${top}px`;
+    };
+  
+    endDrag = (postion) => {
+      document.removeEventListener('mousemove', this.drag);
+      document.removeEventListener('mouseup', this.endDrag);
+      this.onDragEnd(postion);
+    };
+  
+    getPosition() {
+      const { left, top, width, height } = this.element.getBoundingClientRect();
+      return { left, top, width, height };
+    }
+  }
