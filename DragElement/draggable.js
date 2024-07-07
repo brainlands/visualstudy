@@ -77,7 +77,7 @@ class DragElement {
       this.width = width;
       this.height = height;
       this.maxX = this.container.getBoundingClientRect().width - width;
-      this.maxY = this.container.getBoundingClientRect().height - height
+      this.maxY = this.container.getBoundingClientRect().height - height;
       this.init();
     }
   
@@ -88,18 +88,14 @@ class DragElement {
     startDrag = (event) => {
       this.startX = event.clientX;
       this.startY = event.clientY;
-      const { left, top } = this.element.getBoundingClientRect();
-      this.offsetX = this.startX - event.target.offsetLeft;
-      this.offsetY = this.startY - event.target.offsetTop;
-  
       document.addEventListener('mousemove', this.drag);
       document.addEventListener('mouseup', this.endDrag);
     };
   
     drag = (event, offsetX, offsetY) => {
       const { clientX, clientY } = event;
-      const left = Math.max(Math.min(clientX - offsetX, this.maxX),0)
-      const top = Math.max(Math.min(clientY - offsetY, this.maxY),0)
+      const left = Math.max(Math.min(clientX - offsetX, this.maxX),0);
+      const top = Math.max(Math.min(clientY - offsetY, this.maxY),0);
       this.element.style.left = `${left}px`;
       this.element.style.top = `${top}px`;
     };
@@ -111,7 +107,6 @@ class DragElement {
     };
   
     getPosition() {
-      const { left, top, width, height } = this.element.getBoundingClientRect();
-      return { left, top, width, height };
+      return { left: this.element.style.left, top: this.element.style.top, width: this.width, height: this.height };
     }
   }
